@@ -1,24 +1,25 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useUser } from "@/context/UserContext"
-import type { Review } from "@/context/UserContext"
 import { Button } from "@/components/ui/button"
+import { useToast } from "@/hooks/use-toast"
 import {
   Star, Edit2, Check, X, Heart, MessageSquare, Bell, BellOff,
-  Package, Clock, Shield, Eye, EyeOff, ArrowLeft, Send
+  Package, Clock, Shield, Eye, EyeOff, ArrowLeft, Send, Loader2
 } from "lucide-react"
+
+const CATALOG_NAMES: Record<number, string> = {
+  1: "EssentialsX", 2: "Vault", 3: "WorldGuard", 4: "BedWars",
+  5: "LuckPerms", 6: "PlotSquared", 7: "Dynmap", 8: "SkyWars", 9: "QuickShop",
+}
 
 function StarRating({ value, onChange }: { value: number; onChange?: (v: number) => void }) {
   const [hovered, setHovered] = useState(0)
   return (
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
-        <button
-          key={s}
-          type="button"
-          onClick={() => onChange?.(s)}
-          onMouseEnter={() => onChange && setHovered(s)}
-          onMouseLeave={() => onChange && setHovered(0)}
+        <button key={s} type="button" onClick={() => onChange?.(s)}
+          onMouseEnter={() => onChange && setHovered(s)} onMouseLeave={() => onChange && setHovered(0)}
           className={`transition-colors ${onChange ? "cursor-pointer" : "cursor-default"}`}
         >
           <Star className={`h-4 w-4 ${(hovered || value) >= s ? "text-yellow-400 fill-yellow-400" : "text-gray-700"}`} />
@@ -28,13 +29,9 @@ function StarRating({ value, onChange }: { value: number; onChange?: (v: number)
   )
 }
 
-const CATALOG_NAMES: Record<number, string> = {
-  1: "EssentialsX", 2: "Vault", 3: "WorldGuard", 4: "BedWars",
-  5: "LuckPerms", 6: "PlotSquared", 7: "Dynmap", 8: "SkyWars", 9: "QuickShop",
-}
-
 export default function Profile() {
   const navigate = useNavigate()
+  const { toast } = useToast()
   const {
     isLoggedIn, profile, updateProfile, logout,
     ownedPlugins, subscription, reviews, addReview,
@@ -44,8 +41,10 @@ export default function Profile() {
 
   const [tab, setTab] = useState<"overview" | "plugins" | "wishlist" | "activity" | "notifs" | "messages" | "settings">("overview")
   const [editing, setEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [editForm, setEditForm] = useState({ displayName: "", bio: "" })
   const [reviewForm, setReviewForm] = useState({ pluginId: 0, rating: 5, text: "" })
+  const [reviewSaving, setReviewSaving] = useState(false)
   const [msgForm, setMsgForm] = useState({ to: "", text: "" })
   const [showPrivate, setShowPrivate] = useState(false)
 
@@ -70,19 +69,34 @@ export default function Profile() {
     setEditing(true)
   }
 
-  const saveEdit = () => {
-    updateProfile({ displayName: editForm.displayName, bio: editForm.bio })
-    setEditing(false)
+  const saveEdit = async () => {
+    if (!editForm.displayName.trim()) {
+      toast({ title: "Ошибка", description: "Имя не может быть пустым", variant: "destructive" })
+      return
+    }
+    setSaving(true)
+    const result = await updateProfile({ displayName: editForm.displayName.trim(), bio: editForm.bio.trim() })
+    setSaving(false)
+    if (result.ok) {
+      setEditing(false)
+      toast({ title: "Профиль сохранён", description: "Изменения успешно применены" })
+    } else {
+      toast({ title: "Ошибка", description: "Не удалось сохранить профиль", variant: "destructive" })
+    }
   }
 
-  const handleAddReview = () => {
-    if (!reviewForm.pluginId || !reviewForm.text) return
+  const handleAddReview = async () => {
+    if (!reviewForm.pluginId || !reviewForm.text.trim()) return
+    setReviewSaving(true)
     addReview({
       pluginId: reviewForm.pluginId, userId: profile.id,
       userName: profile.displayName, userAvatar: profile.avatar,
-      rating: reviewForm.rating, text: reviewForm.text,
+      rating: reviewForm.rating, text: reviewForm.text.trim(),
     })
+    await new Promise((r) => setTimeout(r, 400))
+    setReviewSaving(false)
     setReviewForm({ pluginId: 0, rating: 5, text: "" })
+    toast({ title: "Отзыв опубликован", description: "Спасибо за вашу оценку!" })
   }
 
   const TABS = [
@@ -132,7 +146,9 @@ export default function Profile() {
                     className="bg-[#0f0f0f] border border-[#333] rounded-lg px-3 py-2 text-sm text-gray-300 w-full outline-none focus:border-orange-500/50 resize-none h-16"
                   />
                   <div className="flex gap-2">
-                    <Button size="sm" onClick={saveEdit} className="bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs"><Check className="h-3 w-3 mr-1" /> Сохранить</Button>
+                    <Button size="sm" onClick={saveEdit} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs disabled:opacity-50">
+                      {saving ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Check className="h-3 w-3 mr-1" />} Сохранить
+                    </Button>
                     <Button size="sm" onClick={() => setEditing(false)} variant="outline" className="border-[#333] text-gray-400 bg-transparent hover:bg-[#1f1f1f] rounded-lg text-xs"><X className="h-3 w-3 mr-1" /> Отмена</Button>
                   </div>
                 </div>
@@ -223,9 +239,10 @@ export default function Profile() {
                   <Button
                     size="sm"
                     onClick={handleAddReview}
-                    disabled={!reviewForm.pluginId || !reviewForm.text}
-                    className="bg-orange-500 text-[#0a0a0a] hover:bg-orange-600 rounded-lg text-xs"
+                    disabled={!reviewForm.pluginId || !reviewForm.text || reviewSaving}
+                    className="bg-orange-500 text-[#0a0a0a] hover:bg-orange-600 rounded-lg text-xs disabled:opacity-50"
                   >
+                    {reviewSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
                     Опубликовать отзыв
                   </Button>
                 </div>
