@@ -6,15 +6,15 @@ export function HeroSection() {
     <section className="flex flex-col items-center justify-center px-4 pt-12 pb-8 text-center">
       <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#1a1a1a] py-2 text-sm px-2">
         <span className="rounded-full bg-orange-500/20 px-2 py-0.5 text-xs font-medium text-orange-400">НОВИНКА</span>
-        <span className="text-gray-300">Более 2 000 премиальных плагинов</span>
+        <span className="text-gray-300">Более 10 премиальных плагинов для Minecraft</span>
         <ArrowUpRight className="h-4 w-4 text-gray-400" />
       </div>
 
       <h1 className="mb-4 max-w-3xl text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white text-balance">
-        Маркетплейс премиальных плагинов
+        Маркетплейс плагинов для Minecraft
       </h1>
 
-      <p className="mb-8 max-w-xl text-gray-400">От мощных SEO-инструментов до аналитики и автоматизации — всё лучшее в одном месте.</p>
+      <p className="mb-8 max-w-xl text-gray-400">Премиальные плагины для вашего сервера — экономика, защита, мини-игры и многое другое.</p>
 
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <Button className="rounded-full bg-orange-500 px-6 hover:bg-orange-600 text-[#0a0a0a] font-semibold">

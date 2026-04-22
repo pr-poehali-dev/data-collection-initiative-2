@@ -19,7 +19,7 @@ export function Header() {
           Категории <ChevronDown className="h-4 w-4" />
         </a>
         <a href="#" className="text-sm text-gray-300 hover:text-white transition-colors">
-          Разработчикам
+          Товары
         </a>
         <a href="#" className="text-sm text-gray-300 hover:text-white transition-colors">
           Тарифы
