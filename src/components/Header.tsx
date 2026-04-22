@@ -1,7 +1,10 @@
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useCart } from "@/context/CartContext"
 
 export function Header() {
+  const { count, setIsOpen } = useCart()
+
   return (
     <header className="flex items-center justify-between px-8 py-4">
       <div className="flex items-center gap-2">
@@ -29,12 +32,25 @@ export function Header() {
         </a>
       </nav>
 
-      <Button
-        variant="outline"
-        className="rounded-full border-orange-500 text-orange-400 hover:bg-orange-500/10 hover:text-orange-300 bg-transparent"
-      >
-        Попробовать бесплатно
-      </Button>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => setIsOpen(true)}
+          className="relative flex items-center justify-center h-9 w-9 rounded-full bg-[#1a1a1a] border border-[#2a2a2a] text-gray-400 hover:text-orange-400 hover:border-orange-500/40 transition-colors"
+        >
+          <ShoppingCart className="h-4 w-4" />
+          {count > 0 && (
+            <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-orange-500 text-[#0a0a0a] text-xs font-bold flex items-center justify-center">
+              {count}
+            </span>
+          )}
+        </button>
+        <Button
+          variant="outline"
+          className="rounded-full border-orange-500 text-orange-400 hover:bg-orange-500/10 hover:text-orange-300 bg-transparent"
+        >
+          Попробовать бесплатно
+        </Button>
+      </div>
     </header>
   )
 }

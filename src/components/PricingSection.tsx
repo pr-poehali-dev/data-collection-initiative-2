@@ -1,5 +1,6 @@
-import { Check, Zap, Star, Crown } from "lucide-react"
+import { Check, Zap, Star, Crown, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useCart } from "@/context/CartContext"
 
 const plans = [
   {
@@ -56,6 +57,8 @@ const plans = [
 ]
 
 export function PricingSection() {
+  const { add, items } = useCart()
+
   return (
     <section className="px-4 md:px-8 py-16">
       <div className="max-w-6xl mx-auto">
@@ -68,6 +71,8 @@ export function PricingSection() {
           {plans.map((plan) => {
             const IconComp = plan.icon
             const isPopular = plan.id === "quarter"
+            const inCart = items.some((i) => i.id === plan.id)
+            const priceNum = parseInt(plan.price.replace(/\s/g, ""))
             return (
               <div
                 key={plan.id}
@@ -102,13 +107,18 @@ export function PricingSection() {
                 </ul>
 
                 <Button
+                  onClick={() => !inCart && add({ id: plan.id, name: `Тариф «${plan.name}»`, price: priceNum, type: "plan" })}
                   className={
-                    isPopular
+                    inCart
+                      ? "w-full rounded-full bg-green-600 hover:bg-green-700 text-white font-semibold"
+                      : isPopular
                       ? "w-full rounded-full bg-orange-500 text-[#0a0a0a] font-semibold hover:bg-orange-600"
                       : "w-full rounded-full bg-[#252525] text-white hover:bg-[#2f2f2f]"
                   }
                 >
-                  Выбрать план
+                  {inCart
+                    ? <><Check className="mr-2 h-4 w-4" /> В корзине</>
+                    : <><Plus className="mr-2 h-4 w-4" /> Выбрать план</>}
                 </Button>
               </div>
             )

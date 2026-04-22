@@ -1,6 +1,7 @@
 import { useState } from "react"
-import { X, Star, Download, Shield, Zap, Sword, Home, Map, Users, ShoppingCart, Trophy, Settings } from "lucide-react"
+import { X, Star, Zap, Sword, Home, Map, Users, ShoppingCart, Trophy, Settings, Shield, Plus, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useCart } from "@/context/CartContext"
 
 const categories = ["Все", "Экономика", "Защита", "Мини-игры", "Строительство", "Карты", "Социальное"]
 
@@ -145,7 +146,10 @@ const plugins = [
 type Plugin = typeof plugins[0]
 
 function PluginModal({ plugin, onClose }: { plugin: Plugin; onClose: () => void }) {
+  const { add, items } = useCart()
   const IconComp = plugin.icon
+  const inCart = items.some((i) => i.id === plugin.id)
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
@@ -208,8 +212,13 @@ function PluginModal({ plugin, onClose }: { plugin: Plugin; onClose: () => void 
           </ul>
         </div>
 
-        <Button className="w-full rounded-full bg-orange-500 text-[#0a0a0a] font-semibold hover:bg-orange-600">
-          Купить за {plugin.price}₽
+        <Button
+          onClick={() => !inCart && add({ id: plugin.id, name: plugin.name, price: plugin.price, type: "plugin" })}
+          className={`w-full rounded-full font-semibold ${inCart ? "bg-green-600 hover:bg-green-700 text-white" : "bg-orange-500 text-[#0a0a0a] hover:bg-orange-600"}`}
+        >
+          {inCart
+            ? <><Check className="mr-2 h-4 w-4" /> В корзине</>
+            : <><Plus className="mr-2 h-4 w-4" /> В корзину — {plugin.price}₽</>}
         </Button>
       </div>
     </div>
@@ -219,6 +228,7 @@ function PluginModal({ plugin, onClose }: { plugin: Plugin; onClose: () => void 
 export function CatalogSection() {
   const [activeCategory, setActiveCategory] = useState("Все")
   const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null)
+  const { add, items } = useCart()
 
   const filtered =
     activeCategory === "Все" ? plugins : plugins.filter((p) => p.category === activeCategory)
@@ -236,7 +246,7 @@ export function CatalogSection() {
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
                 activeCategory === cat
                   ? "bg-orange-500 text-[#0a0a0a]"
                   : "bg-[#1a1a1a] text-gray-400 hover:text-white border border-[#262626]"
@@ -250,13 +260,16 @@ export function CatalogSection() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((plugin) => {
             const IconComp = plugin.icon
+            const inCart = items.some((i) => i.id === plugin.id)
             return (
-              <button
+              <div
                 key={plugin.id}
-                onClick={() => setSelectedPlugin(plugin)}
-                className="rounded-2xl bg-[#141414] border border-[#262626] p-5 flex flex-col text-left hover:border-orange-500/40 hover:bg-[#1a1a1a] transition-all group"
+                className="rounded-2xl bg-[#141414] border border-[#262626] p-5 flex flex-col hover:border-orange-500/40 hover:bg-[#1a1a1a] transition-all group"
               >
-                <div className="flex items-center gap-3 mb-4">
+                <button
+                  onClick={() => setSelectedPlugin(plugin)}
+                  className="flex items-center gap-3 mb-3 text-left w-full"
+                >
                   <div className={`h-11 w-11 rounded-xl ${plugin.color} flex items-center justify-center shrink-0`}>
                     <IconComp className="h-5 w-5 text-white" />
                   </div>
@@ -264,11 +277,13 @@ export function CatalogSection() {
                     <p className="font-semibold text-white group-hover:text-orange-300 transition-colors">{plugin.name}</p>
                     <p className="text-xs text-gray-500">{plugin.category}</p>
                   </div>
-                </div>
+                </button>
 
-                <p className="text-sm text-gray-400 mb-4 line-clamp-2 flex-1">{plugin.description}</p>
+                <button onClick={() => setSelectedPlugin(plugin)} className="text-left flex-1 mb-4">
+                  <p className="text-sm text-gray-400 line-clamp-2">{plugin.description}</p>
+                </button>
 
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-1">
                     <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
                     <span className="text-sm text-gray-300">{plugin.rating}</span>
@@ -276,7 +291,17 @@ export function CatalogSection() {
                   </div>
                   <span className="text-orange-400 font-semibold">{plugin.price}₽</span>
                 </div>
-              </button>
+
+                <Button
+                  size="sm"
+                  onClick={() => !inCart && add({ id: plugin.id, name: plugin.name, price: plugin.price, type: "plugin" })}
+                  className={`w-full rounded-full text-xs font-semibold ${inCart ? "bg-green-600 hover:bg-green-700 text-white" : "bg-orange-500 text-[#0a0a0a] hover:bg-orange-600"}`}
+                >
+                  {inCart
+                    ? <><Check className="mr-1 h-3 w-3" /> В корзине</>
+                    : <><Plus className="mr-1 h-3 w-3" /> В корзину</>}
+                </Button>
+              </div>
             )
           })}
         </div>
