@@ -302,7 +302,7 @@ function SubscriptionTab() {
 }
 
 export default function Dashboard() {
-  const { isLoggedIn, login, logout, ownedPlugins, subscription } = useUser()
+  const { isLoggedIn, logout, ownedPlugins, subscription, profile } = useUser()
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>("plugins")
   const [detailId, setDetailId] = useState<number | null>(null)
@@ -316,7 +316,7 @@ export default function Dashboard() {
           </div>
           <h1 className="text-xl font-bold text-white mb-2">Личный кабинет</h1>
           <p className="text-sm text-gray-500 mb-6">Войдите, чтобы управлять плагинами и серверами</p>
-          <Button onClick={login} className="w-full rounded-full bg-orange-500 text-[#0a0a0a] font-semibold hover:bg-orange-600">
+          <Button onClick={() => navigate("/auth")} className="w-full rounded-full bg-orange-500 text-[#0a0a0a] font-semibold hover:bg-orange-600">
             Войти / Зарегистрироваться
           </Button>
           <button onClick={() => navigate("/")} className="mt-4 text-sm text-gray-600 hover:text-gray-400 transition-colors block w-full">
@@ -345,6 +345,12 @@ export default function Dashboard() {
           <span className="text-white font-semibold">Личный кабинет</span>
         </div>
         <div className="flex items-center gap-3">
+          {profile && (
+            <button onClick={() => navigate("/profile")} className="flex items-center gap-2">
+              <img src={profile.avatar} className="h-7 w-7 rounded-full border border-[#2a2a2a]" alt={profile.displayName} />
+              <span className="text-sm text-gray-300 hidden sm:block">{profile.displayName}</span>
+            </button>
+          )}
           {subscription !== "none" && (
             <span className="flex items-center gap-1.5 rounded-full bg-orange-500/15 border border-orange-500/30 px-3 py-1 text-xs font-medium text-orange-400">
               <Crown className="h-3 w-3" /> {TIER_LABELS[subscription]}

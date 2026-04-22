@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { X, Star, Zap, Sword, Home, Map, Users, ShoppingCart, Trophy, Settings, Shield, Plus, Check, Crown } from "lucide-react"
+import { X, Star, Zap, Sword, Home, Map, Users, ShoppingCart, Trophy, Settings, Shield, Plus, Check, Crown, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/context/CartContext"
 import { useUser } from "@/context/UserContext"
@@ -195,6 +195,7 @@ export function CatalogSection() {
 
   const hasSubscription = subscription !== "none"
   const filtered = activeCategory === "Все" ? plugins : plugins.filter((p) => p.category === activeCategory)
+  const { wishlist, toggleWishlist } = useUser()
 
   const handleAddToCart = (plugin: Plugin) => {
     add({ id: plugin.id, name: plugin.name, price: plugin.price, type: "plugin" })
@@ -237,20 +238,28 @@ export function CatalogSection() {
                 className="animate-fade-up hover-lift rounded-2xl bg-[#141414] border border-[#262626] p-5 flex flex-col hover:border-orange-500/40 hover:bg-[#1a1a1a] transition-all group"
                 style={{ animationDelay: `${idx * 0.07}s` }}
               >
-                <button onClick={() => setSelectedPlugin(plugin)} className="flex items-center gap-3 mb-3 text-left w-full">
-                  <div className={`relative h-11 w-11 rounded-xl ${plugin.color} flex items-center justify-center shrink-0`}>
-                    <IconComp className="h-5 w-5 text-white" />
-                    {plugin.premium && (
-                      <div className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-orange-500 flex items-center justify-center">
-                        <Crown className="h-2.5 w-2.5 text-white" />
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-white group-hover:text-orange-300 transition-colors">{plugin.name}</p>
-                    <p className="text-xs text-gray-500">{plugin.category}</p>
-                  </div>
-                </button>
+                <div className="flex items-center justify-between mb-3">
+                  <button onClick={() => setSelectedPlugin(plugin)} className="flex items-center gap-3 text-left flex-1 min-w-0">
+                    <div className={`relative h-11 w-11 rounded-xl ${plugin.color} flex items-center justify-center shrink-0`}>
+                      <IconComp className="h-5 w-5 text-white" />
+                      {plugin.premium && (
+                        <div className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-orange-500 flex items-center justify-center">
+                          <Crown className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white group-hover:text-orange-300 transition-colors">{plugin.name}</p>
+                      <p className="text-xs text-gray-500">{plugin.category}</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => toggleWishlist(plugin.id)}
+                    className={`shrink-0 transition-all ${wishlist.includes(plugin.id) ? "text-red-400 scale-110" : "text-gray-700 hover:text-red-400"}`}
+                  >
+                    <Heart className={`h-4 w-4 ${wishlist.includes(plugin.id) ? "fill-red-400" : ""}`} />
+                  </button>
+                </div>
 
                 <button onClick={() => setSelectedPlugin(plugin)} className="text-left flex-1 mb-4">
                   <p className="text-sm text-gray-400 line-clamp-2">{plugin.description}</p>
