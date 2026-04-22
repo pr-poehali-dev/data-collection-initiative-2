@@ -9,11 +9,11 @@ export default function Index() {
   return (
     <main className="min-h-screen bg-[#0a0a0a]">
       <Header />
-      <HeroSection />
-      <PartnersSection />
-      <FeaturesSection />
-      <CatalogSection />
-      <PricingSection />
+      <section id="hero"><HeroSection /></section>
+      <section id="partners"><PartnersSection /></section>
+      <section id="features"><FeaturesSection /></section>
+      <section id="catalog"><CatalogSection /></section>
+      <section id="pricing"><PricingSection /></section>
       <footer className="py-8 text-center text-sm text-gray-400">
         От поиска до установки и обновлений —{" "}
         <span className="font-medium text-white">всё в одном маркетплейсе.</span>

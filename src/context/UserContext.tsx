@@ -92,17 +92,51 @@ export interface Transaction {
   paymentMethod?: string
 }
 
+export type UserRole = "user" | "moderator" | "admin"
+
 export interface AdminUser {
   id: string
   displayName: string
   email: string
   avatar: string
   isAdmin: boolean
+  isModerator: boolean
   isBlocked: boolean
   registeredAt: string
   subscription: SubscriptionTier
   purchasesCount: number
   reputation: number
+  role: UserRole
+}
+
+export interface ManagedPlugin {
+  id: number
+  name: string
+  description: string
+  category: string
+  price: number
+  version: string
+  compatibility: string
+  sales: number
+  revenue: number
+  premium: boolean
+  active: boolean
+  screenshots: string[]
+  videoUrl: string
+  whitelistEnabled: boolean
+  defaultIpSlots: number
+  extraIpSlotPrice: number
+}
+
+export interface IpSlotEntry {
+  userId: string
+  userName: string
+  userEmail: string
+  pluginId: number
+  pluginName: string
+  ips: string[]
+  maxSlots: number
+  extraSlots: number
 }
 
 export interface AdminLogEntry {
@@ -127,11 +161,26 @@ const genUUID = () => "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c
 const now = () => new Date().toLocaleString("ru-RU")
 
 const DEMO_USERS: AdminUser[] = [
-  { id: "admin1", displayName: "Иван Пестряков", email: "idpestriakov@gmail.com", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=admin", isAdmin: true, isBlocked: false, registeredAt: "15.01.2024", subscription: "forever", purchasesCount: 0, reputation: 100 },
-  { id: "u1", displayName: "Alex Builder", email: "alex@craftmine.ru", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=alex", isAdmin: false, isBlocked: false, registeredAt: "20.03.2024", subscription: "quarter", purchasesCount: 7, reputation: 42 },
-  { id: "u2", displayName: "Maria_Dev", email: "maria@devcraft.net", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=maria", isAdmin: false, isBlocked: false, registeredAt: "10.05.2024", subscription: "month", purchasesCount: 3, reputation: 15 },
-  { id: "u3", displayName: "DarkPvp_King", email: "king@darkpvp.net", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=king", isAdmin: false, isBlocked: true, registeredAt: "01.06.2024", subscription: "none", purchasesCount: 1, reputation: -5 },
-  { id: "u4", displayName: "CraftMaster", email: "master@mc.ru", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=craft", isAdmin: false, isBlocked: false, registeredAt: "12.07.2024", subscription: "forever", purchasesCount: 14, reputation: 88 },
+  { id: "admin1", displayName: "Иван Пестряков", email: "idpestriakov@gmail.com", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=admin", isAdmin: true, isModerator: false, isBlocked: false, registeredAt: "15.01.2024", subscription: "forever", purchasesCount: 0, reputation: 100, role: "admin" },
+  { id: "u1", displayName: "Alex Builder", email: "alex@craftmine.ru", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=alex", isAdmin: false, isModerator: true, isBlocked: false, registeredAt: "20.03.2024", subscription: "quarter", purchasesCount: 7, reputation: 42, role: "moderator" },
+  { id: "u2", displayName: "Maria_Dev", email: "maria@devcraft.net", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=maria", isAdmin: false, isModerator: false, isBlocked: false, registeredAt: "10.05.2024", subscription: "month", purchasesCount: 3, reputation: 15, role: "user" },
+  { id: "u3", displayName: "DarkPvp_King", email: "king@darkpvp.net", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=king", isAdmin: false, isModerator: false, isBlocked: true, registeredAt: "01.06.2024", subscription: "none", purchasesCount: 1, reputation: -5, role: "user" },
+  { id: "u4", displayName: "CraftMaster", email: "master@mc.ru", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=craft", isAdmin: false, isModerator: false, isBlocked: false, registeredAt: "12.07.2024", subscription: "forever", purchasesCount: 14, reputation: 88, role: "user" },
+]
+
+export const DEMO_MANAGED_PLUGINS: ManagedPlugin[] = [
+  { id: 1, name: "EssentialsX", description: "Основной набор команд для Minecraft-сервера. Включает телепортацию, варп-точки, экономику и многое другое.", category: "Социальное", price: 149, version: "2.21.0", compatibility: "1.18–1.21", sales: 1240, revenue: 184760, premium: true, active: true, screenshots: [], videoUrl: "", whitelistEnabled: true, defaultIpSlots: 3, extraIpSlotPrice: 49 },
+  { id: 2, name: "Vault", description: "Унифицированный API для экономики, прав и чата. Необходим большинству плагинов.", category: "Экономика", price: 99, version: "1.7.3", compatibility: "1.16–1.21", sales: 3500, revenue: 346500, premium: true, active: true, screenshots: [], videoUrl: "", whitelistEnabled: false, defaultIpSlots: 1, extraIpSlotPrice: 29 },
+  { id: 3, name: "WorldGuard", description: "Мощная система защиты регионов. Настраивайте права и флаги для любой зоны.", category: "Защита", price: 199, version: "7.0.11", compatibility: "1.16–1.21", sales: 980, revenue: 195020, premium: true, active: true, screenshots: [], videoUrl: "", whitelistEnabled: true, defaultIpSlots: 5, extraIpSlotPrice: 59 },
+  { id: 4, name: "BedWars", description: "Полнофункциональная мини-игра BedWars с командами, магазинами и статистикой.", category: "Мини-игры", price: 349, version: "0.9.8", compatibility: "1.18–1.21", sales: 630, revenue: 219870, premium: false, active: true, screenshots: [], videoUrl: "", whitelistEnabled: true, defaultIpSlots: 2, extraIpSlotPrice: 79 },
+  { id: 5, name: "LuckPerms", description: "Передовая система управления правами с поддержкой групп, временных прав и веб-интерфейса.", category: "Социальное", price: 179, version: "5.4.130", compatibility: "1.16–1.21", sales: 2100, revenue: 375900, premium: true, active: true, screenshots: [], videoUrl: "", whitelistEnabled: true, defaultIpSlots: 3, extraIpSlotPrice: 49 },
+  { id: 6, name: "PlotSquared", description: "Система участков для творческих серверов. Гибкие настройки, флаги и мерж участков.", category: "Строительство", price: 249, version: "7.3.9", compatibility: "1.18–1.21", sales: 740, revenue: 184260, premium: false, active: true, screenshots: [], videoUrl: "", whitelistEnabled: false, defaultIpSlots: 1, extraIpSlotPrice: 39 },
+]
+
+export const DEMO_IP_SLOTS: IpSlotEntry[] = [
+  { userId: "u1", userName: "Alex Builder", userEmail: "alex@craftmine.ru", pluginId: 1, pluginName: "EssentialsX", ips: ["192.168.1.1", "10.0.0.5"], maxSlots: 3, extraSlots: 0 },
+  { userId: "u1", userName: "Alex Builder", userEmail: "alex@craftmine.ru", pluginId: 3, pluginName: "WorldGuard", ips: ["192.168.1.1"], maxSlots: 5, extraSlots: 2 },
+  { userId: "u4", userName: "CraftMaster", userEmail: "master@mc.ru", pluginId: 5, pluginName: "LuckPerms", ips: ["45.12.33.11", "45.12.33.12", "45.12.33.13"], maxSlots: 3, extraSlots: 3 },
 ]
 
 const DEMO_TRANSACTIONS: Transaction[] = [
@@ -189,6 +238,14 @@ interface UserContextType {
   setGlobalDiscount: (v: number) => void
   messages: Message[]
   sendMessage: (toId: string, toName: string, text: string) => void
+  managedPlugins: ManagedPlugin[]
+  setManagedPlugins: (fn: ManagedPlugin[] | ((prev: ManagedPlugin[]) => ManagedPlugin[])) => void
+  ipSlots: IpSlotEntry[]
+  addIpToSlot: (userId: string, pluginId: number, ip: string) => void
+  removeIpFromSlot: (userId: string, pluginId: number, ip: string) => void
+  addExtraSlot: (userId: string, pluginId: number) => void
+  grantPluginAccess: (userId: string, pluginId: number) => void
+  currentUserRole: UserRole
 }
 
 const UserContext = createContext<UserContextType | null>(null)
@@ -230,6 +287,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [adminLog, setAdminLog] = useState<AdminLogEntry[]>(() => ls_get<AdminLogEntry[]>("adminLog", []))
   const [theme, setTheme] = useState<"dark" | "light">(() => ls_get<"dark" | "light">("theme", "dark"))
   const [globalDiscount, setGlobalDiscountState] = useState<number>(() => ls_get<number>("globalDiscount", 0))
+  const [managedPluginsState, setManagedPluginsState] = useState<ManagedPlugin[]>(() => ls_get<ManagedPlugin[]>("managedPlugins", DEMO_MANAGED_PLUGINS))
+  const [ipSlots, setIpSlotsState] = useState<IpSlotEntry[]>(() => ls_get<IpSlotEntry[]>("ipSlots", DEMO_IP_SLOTS))
 
   // Sync profile → localStorage
   const setProfile = useCallback((p: UserProfile | null | ((prev: UserProfile | null) => UserProfile | null)) => {
@@ -272,6 +331,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const setGlobalDiscount = useCallback((v: number) => {
     setGlobalDiscountState(v)
     ls_set("globalDiscount", v)
+  }, [])
+
+  const setManagedPlugins = useCallback((fn: ManagedPlugin[] | ((prev: ManagedPlugin[]) => ManagedPlugin[])) => {
+    setManagedPluginsState((prev) => {
+      const next = typeof fn === "function" ? fn(prev) : fn
+      ls_set("managedPlugins", next)
+      return next
+    })
+  }, [])
+
+  const setIpSlots = useCallback((fn: IpSlotEntry[] | ((prev: IpSlotEntry[]) => IpSlotEntry[])) => {
+    setIpSlotsState((prev) => {
+      const next = typeof fn === "function" ? fn(prev) : fn
+      ls_set("ipSlots", next)
+      return next
+    })
   }, [])
 
   useEffect(() => {
@@ -517,6 +592,47 @@ export function UserProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  // IP SLOTS
+  const addIpToSlot = (userId: string, pluginId: number, ip: string) => {
+    setIpSlots((prev) => prev.map((s) =>
+      s.userId === userId && s.pluginId === pluginId && !s.ips.includes(ip) && s.ips.length < s.maxSlots + s.extraSlots
+        ? { ...s, ips: [...s.ips, ip] } : s
+    ))
+  }
+
+  const removeIpFromSlot = (userId: string, pluginId: number, ip: string) => {
+    setIpSlots((prev) => prev.map((s) =>
+      s.userId === userId && s.pluginId === pluginId
+        ? { ...s, ips: s.ips.filter((i) => i !== ip) } : s
+    ))
+  }
+
+  const addExtraSlot = (userId: string, pluginId: number) => {
+    setIpSlots((prev) => prev.map((s) =>
+      s.userId === userId && s.pluginId === pluginId
+        ? { ...s, extraSlots: s.extraSlots + 1 } : s
+    ))
+  }
+
+  const grantPluginAccess = (userId: string, pluginId: number) => {
+    const mp = managedPluginsState.find((p) => p.id === pluginId)
+    if (!mp) return
+    const user = adminUsers.find((u) => u.id === userId)
+    if (!user) return
+    setIpSlots((prev) => {
+      const exists = prev.find((s) => s.userId === userId && s.pluginId === pluginId)
+      if (exists) return prev
+      return [...prev, {
+        userId, userName: user.displayName, userEmail: user.email,
+        pluginId, pluginName: mp.name,
+        ips: [], maxSlots: mp.defaultIpSlots, extraSlots: 0,
+      }]
+    })
+  }
+
+  // CURRENT USER ROLE
+  const currentUserRole: UserRole = profile?.isAdmin ? "admin" : (adminUsers.find((u) => u.email === profile?.email)?.isModerator ? "moderator" : "user")
+
   return (
     <UserContext.Provider value={{
       isLoggedIn, profile, login, loginWithProvider, register, logout, updateProfile,
@@ -533,6 +649,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       theme, toggleTheme,
       globalDiscount, setGlobalDiscount,
       messages, sendMessage,
+      managedPlugins: managedPluginsState, setManagedPlugins,
+      ipSlots, addIpToSlot, removeIpFromSlot, addExtraSlot, grantPluginAccess,
+      currentUserRole,
     }}>
       {children}
     </UserContext.Provider>
