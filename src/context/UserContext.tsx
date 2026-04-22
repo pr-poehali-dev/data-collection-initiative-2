@@ -1,8 +1,32 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from "react"
-import { ls_get, ls_set, ls_clear_all } from "@/lib/storage"
+import { ls_get, ls_set } from "@/lib/storage"
 
-export type SubscriptionTier = "none" | "month" | "quarter" | "forever"
+export type SubscriptionTier =
+  | "none"
+  | "month" | "quarter" | "forever"
+  | "premium_month" | "premium_half" | "premium_forever"
+  | "super_month" | "super_half" | "super_forever"
 export type AuthProvider = "email" | "google" | "discord" | "github"
+
+export interface PlanInfo {
+  id: SubscriptionTier
+  tier: "premium" | "super"
+  period: "month" | "half" | "forever"
+  title: string
+  price: number
+  periodLabel: string
+  discount?: string
+  features: string[]
+}
+
+export const PLAN_CATALOG: PlanInfo[] = [
+  { id: "premium_month", tier: "premium", period: "month", title: "Premium · Месяц", price: 299, periodLabel: "30 дней", features: ["Все плагины", "Автообновления", "Базовая поддержка", "До 1 сервера"] },
+  { id: "premium_half", tier: "premium", period: "half", title: "Premium · 6 месяцев", price: 1495, periodLabel: "6 месяцев", discount: "−15%", features: ["Все плагины", "Автообновления", "Приоритетная поддержка", "До 3 серверов"] },
+  { id: "premium_forever", tier: "premium", period: "forever", title: "Premium · Навсегда", price: 2990, periodLabel: "навсегда", discount: "−50%", features: ["Все плагины навсегда", "Все обновления", "VIP-поддержка", "До 5 серверов"] },
+  { id: "super_month", tier: "super", period: "month", title: "Super · Месяц", price: 799, periodLabel: "30 дней", features: ["Всё из Premium", "Super-плагины", "Личный менеджер", "До 5 серверов"] },
+  { id: "super_half", tier: "super", period: "half", title: "Super · 6 месяцев", price: 3995, periodLabel: "6 месяцев", discount: "−15%", features: ["Всё из Premium", "Super-плагины", "Личный менеджер", "До 10 серверов"] },
+  { id: "super_forever", tier: "super", period: "forever", title: "Super · Навсегда", price: 7990, periodLabel: "навсегда", discount: "−50%", features: ["Всё из Premium навсегда", "Super-плагины", "VIP-поддержка 24/7", "Безлимит серверов"] },
+]
 
 export interface OwnedPlugin {
   id: number
@@ -42,6 +66,8 @@ export interface UserProfile {
   profileVisibility: { purchases: boolean; activity: boolean; bio: boolean }
   activityLog: ActivityEntry[]
   messages: Message[]
+  subscriptionTier?: SubscriptionTier
+  subscriptionExpiresAt?: string | null
 }
 
 export interface Notification {
@@ -145,10 +171,13 @@ export interface AdminLogEntry {
   action: string
   target: string
   createdAt: string
+  ip?: string
 }
 
 const TIER_LIMITS: Record<SubscriptionTier, number> = {
   none: 0, month: 1, quarter: 3, forever: 999,
+  premium_month: 1, premium_half: 3, premium_forever: 5,
+  super_month: 5, super_half: 10, super_forever: 999,
 }
 
 const ADMIN_EMAIL = "idpestriakov@gmail.com"
@@ -246,6 +275,7 @@ interface UserContextType {
   addExtraSlot: (userId: string, pluginId: number) => void
   grantPluginAccess: (userId: string, pluginId: number) => void
   currentUserRole: UserRole
+  activateSubscription: (plan: PlanInfo) => void
 }
 
 const UserContext = createContext<UserContextType | null>(null)
@@ -349,6 +379,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
+  // Активация тарифа с расчётом даты окончания
+  const activateSubscription = useCallback((plan: PlanInfo) => {
+    setSubState(plan.id)
+    ls_set("subscription", plan.id)
+    const addDays = (d: Date, n: number) => { const r = new Date(d); r.setDate(r.getDate() + n); return r }
+    let expires: Date | null = null
+    if (plan.period === "month") expires = addDays(new Date(), 30)
+    else if (plan.period === "half") expires = addDays(new Date(), 180)
+    else expires = null // forever
+    setProfileState((prev) => {
+      if (!prev) return prev
+      const updated: UserProfile = {
+        ...prev,
+        subscriptionTier: plan.id,
+        subscriptionExpiresAt: expires ? expires.toISOString() : null,
+      }
+      ls_set("profile", updated)
+      ls_set(`saved_profile_${prev.email}`, updated)
+      return updated
+    })
+  }, [])
+
   useEffect(() => {
     document.documentElement.classList.toggle("light-theme", theme === "light")
     ls_set("theme", theme)
@@ -356,40 +408,91 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const isLoggedIn = profile !== null
 
+  // Симуляция получения IP клиента
+  const getClientIp = (): string => {
+    const octet = () => Math.floor(Math.random() * 255)
+    return `${octet()}.${octet()}.${octet()}.${octet()}`
+  }
+
   // AUTH
-  const login = async (email: string, _password: string): Promise<{ ok: boolean; error?: string }> => {
+  const login = async (email: string, password: string): Promise<{ ok: boolean; error?: string }> => {
     if (!email) return { ok: false, error: "Введите email" }
+    if (!password || password.length < 4) return { ok: false, error: "Пароль слишком короткий" }
     // Симуляция задержки API
     await new Promise((r) => setTimeout(r, 600))
     const saved = ls_get<UserProfile | null>(`saved_profile_${email}`, null)
     const p = saved || createProfile(email, email.split("@")[0], "email")
     if (email === ADMIN_EMAIL && !p.isAdmin) p.isAdmin = true
-    p.activityLog = [{ id: genId(), type: "login", text: "Вход в систему", createdAt: now() }, ...(p.activityLog || []).slice(0, 49)]
+    const ip = getClientIp()
+    p.lastIps = [ip, ...(p.lastIps || [])].slice(0, 5)
+    p.activityLog = [{ id: genId(), type: "login", text: `Вход в систему (IP ${ip})`, createdAt: now() }, ...(p.activityLog || []).slice(0, 49)]
     setProfile(p)
     if (email === ADMIN_EMAIL) setSubscription("forever")
     return { ok: true }
   }
 
   const loginWithProvider = async (provider: AuthProvider): Promise<{ ok: boolean; error?: string }> => {
-    await new Promise((r) => setTimeout(r, 800))
-    const DEMO_EMAILS: Record<AuthProvider, string> = {
-      google: "user.google@gmail.com",
-      discord: "user.discord@discord.gg",
-      github: "user.github@github.com",
-      email: "user@example.com",
+    try {
+      // Симуляция OAuth-redirect и обмена кода на токен
+      await new Promise((r) => setTimeout(r, 800))
+
+      // Симуляция редких OAuth-ошибок для реалистичности
+      if (Math.random() < 0.02) {
+        return { ok: false, error: `Авторизация через ${provider} отклонена` }
+      }
+
+      const DEMO_EMAILS: Record<AuthProvider, string> = {
+        google: "user.google@gmail.com",
+        discord: "user.discord@discord.gg",
+        github: "user.github@github.com",
+        email: "user@example.com",
+      }
+      const DEMO_NAMES: Record<AuthProvider, string> = {
+        google: "Google User",
+        discord: "Discord User",
+        github: "GitHub User",
+        email: "Email User",
+      }
+      const DEMO_AVATARS: Record<AuthProvider, string> = {
+        google: "https://api.dicebear.com/7.x/avataaars/svg?seed=google-user",
+        discord: "https://api.dicebear.com/7.x/avataaars/svg?seed=discord-user",
+        github: "https://api.dicebear.com/7.x/avataaars/svg?seed=github-user",
+        email: "https://api.dicebear.com/7.x/avataaars/svg?seed=email-user",
+      }
+
+      const email = DEMO_EMAILS[provider]
+      const saved = ls_get<UserProfile | null>(`saved_profile_${email}`, null)
+      const p = saved || createProfile(email, DEMO_NAMES[provider], provider)
+
+      // Синхронизируем аватар и имя с OAuth-провайдером
+      p.avatar = DEMO_AVATARS[provider]
+      if (!saved) p.displayName = DEMO_NAMES[provider]
+      // Добавляем провайдер в список привязанных
+      if (!p.authProviders.includes(provider)) p.authProviders = [...p.authProviders, provider]
+
+      const ip = getClientIp()
+      p.lastIps = [ip, ...(p.lastIps || [])].slice(0, 5)
+      p.activityLog = [{ id: genId(), type: "login", text: `Вход через ${provider} (IP ${ip})`, createdAt: now() }, ...(p.activityLog || []).slice(0, 49)]
+
+      setProfile(p)
+      ls_set(`saved_profile_${email}`, p)
+
+      // Добавляем пользователя в adminUsers, если его нет
+      setAdminUsers((prev) => {
+        if (prev.find((u) => u.email === email)) return prev
+        return [...prev, {
+          id: p.id, displayName: p.displayName, email, avatar: p.avatar,
+          isAdmin: false, isModerator: false, isBlocked: false,
+          registeredAt: p.registeredAt, subscription: "none",
+          purchasesCount: 0, reputation: 0, role: "user",
+        }]
+      })
+
+      return { ok: true }
+    } catch (err) {
+      console.error("OAuth error", err)
+      return { ok: false, error: `Не удалось войти через ${provider}. Попробуйте позже.` }
     }
-    const DEMO_NAMES: Record<AuthProvider, string> = {
-      google: "Google User",
-      discord: "Discord User",
-      github: "GitHub User",
-      email: "Email User",
-    }
-    const email = DEMO_EMAILS[provider]
-    const saved = ls_get<UserProfile | null>(`saved_profile_${email}`, null)
-    const p = saved || createProfile(email, DEMO_NAMES[provider], provider)
-    p.activityLog = [{ id: genId(), type: "login", text: `Вход через ${provider}`, createdAt: now() }, ...(p.activityLog || []).slice(0, 49)]
-    setProfile(p)
-    return { ok: true }
   }
 
   const register = async (email: string, _password: string, name: string): Promise<{ ok: boolean; error?: string }> => {
@@ -402,8 +505,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     ls_set(`saved_profile_${email}`, p)
     const newAdmin: AdminUser = {
       id: p.id, displayName: name, email, avatar: p.avatar,
-      isAdmin: email === ADMIN_EMAIL, isBlocked: false,
+      isAdmin: email === ADMIN_EMAIL, isModerator: false, isBlocked: false,
       registeredAt: p.registeredAt, subscription: "none", purchasesCount: 0, reputation: 0,
+      role: email === ADMIN_EMAIL ? "admin" : "user",
     }
     setAdminUsers((prev) => [...prev.filter((u) => u.email !== email), newAdmin])
     return { ok: true }
@@ -562,6 +666,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       action,
       target,
       createdAt: now(),
+      ip: (profile?.lastIps && profile.lastIps[0]) || getClientIp(),
     }
     setAdminLog((prev) => {
       const next = [entry, ...prev.slice(0, 199)]
@@ -652,6 +757,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       managedPlugins: managedPluginsState, setManagedPlugins,
       ipSlots, addIpToSlot, removeIpFromSlot, addExtraSlot, grantPluginAccess,
       currentUserRole,
+      activateSubscription,
     }}>
       {children}
     </UserContext.Provider>

@@ -14,14 +14,30 @@ const TIER_LABELS: Record<string, string> = {
   month: "Старт · 1 месяц",
   quarter: "Про · 3 месяца",
   forever: "Навсегда",
+  premium_month: "Premium · Месяц",
+  premium_half: "Premium · 6 месяцев",
+  premium_forever: "Premium · Навсегда",
+  super_month: "Super · Месяц",
+  super_half: "Super · 6 месяцев",
+  super_forever: "Super · Навсегда",
 }
 const TIER_COLORS: Record<string, string> = {
   none: "text-gray-500",
   month: "text-orange-400",
   quarter: "text-yellow-400",
   forever: "text-amber-300",
+  premium_month: "text-orange-400",
+  premium_half: "text-orange-400",
+  premium_forever: "text-amber-300",
+  super_month: "text-purple-400",
+  super_half: "text-purple-400",
+  super_forever: "text-purple-300",
 }
-const TIER_LIMITS: Record<string, number> = { none: 0, month: 1, quarter: 3, forever: 999 }
+const TIER_LIMITS: Record<string, number> = {
+  none: 0, month: 1, quarter: 3, forever: 999,
+  premium_month: 1, premium_half: 3, premium_forever: 5,
+  super_month: 5, super_half: 10, super_forever: 999,
+}
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)
@@ -253,49 +269,32 @@ function ServersTab() {
 }
 
 function SubscriptionTab() {
-  const { subscription, setSubscription } = useUser()
-  const plans = [
-    { id: "month" as const, name: "Старт", price: "299₽/мес", servers: 1, desc: "Базовый доступ, 1 сервер" },
-    { id: "quarter" as const, name: "Про", price: "699₽/3 мес", servers: 3, desc: "Приоритетная поддержка, 3 сервера" },
-    { id: "forever" as const, name: "Навсегда", price: "1990₽", servers: 999, desc: "∞ серверов, VIP-поддержка" },
-  ]
+  const { subscription, profile, setSubscription } = useUser()
+  const navigate = useNavigate()
+  const expires = profile?.subscriptionExpiresAt
+    ? new Date(profile.subscriptionExpiresAt).toLocaleDateString("ru-RU")
+    : null
   return (
     <div className="space-y-4">
       <div className="rounded-xl bg-[#1a1a1a] border border-[#262626] p-4 flex items-center justify-between">
         <div>
           <p className="text-xs text-gray-500 mb-0.5">Текущий план</p>
           <p className={`font-semibold ${TIER_COLORS[subscription]}`}>{TIER_LABELS[subscription]}</p>
+          {expires && <p className="text-xs text-gray-600 mt-0.5">Действует до {expires}</p>}
+          {!expires && subscription !== "none" && <p className="text-xs text-green-400 mt-0.5">Без срока окончания</p>}
         </div>
         {subscription !== "none" && (
           <button onClick={() => setSubscription("none")} className="text-xs text-gray-600 hover:text-red-400 transition-colors">Отменить</button>
         )}
       </div>
-      <div className="space-y-3">
-        {plans.map((plan) => (
-          <div
-            key={plan.id}
-            onClick={() => setSubscription(plan.id)}
-            className={`rounded-xl border p-4 cursor-pointer transition-all hover-lift ${
-              subscription === plan.id
-                ? "bg-orange-500/10 border-orange-500/40"
-                : "bg-[#1a1a1a] border-[#262626] hover:border-orange-500/20"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-white">{plan.name}</p>
-                  {subscription === plan.id && <Check className="h-4 w-4 text-orange-400" />}
-                </div>
-                <p className="text-xs text-gray-500 mt-0.5">{plan.desc}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-orange-400">{plan.price}</p>
-                <p className="text-xs text-gray-600">{plan.servers === 999 ? "∞" : plan.servers} серв.</p>
-              </div>
-            </div>
-          </div>
-        ))}
+
+      <div className="rounded-xl bg-[#1a1a1a] border border-[#262626] p-5 text-center">
+        <Crown className="h-8 w-8 text-orange-400 mx-auto mb-3" />
+        <p className="text-sm text-white font-medium mb-1">Сменить или продлить тариф?</p>
+        <p className="text-xs text-gray-500 mb-4">Выберите план Premium или Super на удобный срок</p>
+        <Button onClick={() => navigate("/checkout")} className="rounded-full bg-orange-500 text-[#0a0a0a] hover:bg-orange-600 font-semibold">
+          Перейти к тарифам
+        </Button>
       </div>
     </div>
   )

@@ -895,6 +895,7 @@ export default function Admin() {
                     <div className="text-right shrink-0">
                       <p className="text-xs text-gray-600">{entry.createdAt}</p>
                       <p className="text-xs text-orange-400">{entry.adminEmail}</p>
+                      {entry.ip && <p className="text-[10px] text-gray-700 font-mono">IP {entry.ip}</p>}
                     </div>
                   </div>
                 ))}
