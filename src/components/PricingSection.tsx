@@ -62,13 +62,13 @@ export function PricingSection() {
   return (
     <section className="px-4 md:px-8 py-16">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
+        <div className="animate-fade-up text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Тарифы</h2>
           <p className="text-gray-400 max-w-md mx-auto">Выберите план и получите доступ ко всем плагинам маркетплейса</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {plans.map((plan) => {
+          {plans.map((plan, idx) => {
             const IconComp = plan.icon
             const isPopular = plan.id === "quarter"
             const inCart = items.some((i) => i.id === plan.id)
@@ -76,7 +76,8 @@ export function PricingSection() {
             return (
               <div
                 key={plan.id}
-                className={`relative rounded-2xl bg-[#141414] border ${plan.borderColor} p-6 flex flex-col ${isPopular ? "ring-1 ring-orange-500/30" : ""}`}
+                className={`animate-fade-up hover-lift relative rounded-2xl bg-[#141414] border ${plan.borderColor} p-6 flex flex-col ${isPopular ? "ring-1 ring-orange-500/30 animate-glow" : ""}`}
+                style={{ animationDelay: `${idx * 0.12}s` }}
               >
                 {plan.badge && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">

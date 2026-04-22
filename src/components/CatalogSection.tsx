@@ -156,7 +156,7 @@ function PluginModal({ plugin, onClose }: { plugin: Plugin; onClose: () => void 
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg rounded-2xl bg-[#141414] border border-[#2a2a2a] p-6 overflow-y-auto max-h-[90vh]"
+        className="animate-fade-up relative w-full max-w-lg rounded-2xl bg-[#141414] border border-[#2a2a2a] p-6 overflow-y-auto max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -236,17 +236,17 @@ export function CatalogSection() {
   return (
     <section className="px-4 md:px-8 py-16">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-10">
+        <div className="animate-fade-up text-center mb-10">
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Каталог плагинов</h2>
           <p className="text-gray-400 max-w-md mx-auto">Проверенные плагины для Minecraft — нажмите на карточку для подробного описания</p>
         </div>
 
-        <div className="flex flex-wrap gap-2 justify-center mb-8">
+        <div className="animate-fade-up delay-100 flex flex-wrap gap-2 justify-center mb-8">
           {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all cursor-pointer hover:scale-105 ${
                 activeCategory === cat
                   ? "bg-orange-500 text-[#0a0a0a]"
                   : "bg-[#1a1a1a] text-gray-400 hover:text-white border border-[#262626]"
@@ -258,13 +258,14 @@ export function CatalogSection() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((plugin) => {
+          {filtered.map((plugin, idx) => {
             const IconComp = plugin.icon
             const inCart = items.some((i) => i.id === plugin.id)
             return (
               <div
                 key={plugin.id}
-                className="rounded-2xl bg-[#141414] border border-[#262626] p-5 flex flex-col hover:border-orange-500/40 hover:bg-[#1a1a1a] transition-all group"
+                className="animate-fade-up hover-lift rounded-2xl bg-[#141414] border border-[#262626] p-5 flex flex-col hover:border-orange-500/40 hover:bg-[#1a1a1a] transition-all group"
+                style={{ animationDelay: `${idx * 0.07}s` }}
               >
                 <button
                   onClick={() => setSelectedPlugin(plugin)}
