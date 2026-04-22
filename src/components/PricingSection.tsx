@@ -1,6 +1,8 @@
 import { Check, Zap, Star, Crown, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/context/CartContext"
+import { useUser } from "@/context/UserContext"
+import type { SubscriptionTier } from "@/context/UserContext"
 
 const plans = [
   {
@@ -58,6 +60,7 @@ const plans = [
 
 export function PricingSection() {
   const { add, items } = useCart()
+  const { subscription, setSubscription, isLoggedIn, login } = useUser()
 
   return (
     <section className="px-4 md:px-8 py-16">
@@ -108,18 +111,22 @@ export function PricingSection() {
                 </ul>
 
                 <Button
-                  onClick={() => !inCart && add({ id: plan.id, name: `Тариф «${plan.name}»`, price: priceNum, type: "plan" })}
+                  onClick={() => {
+                    if (!isLoggedIn) login()
+                    setSubscription(plan.id as SubscriptionTier)
+                    if (!inCart) add({ id: plan.id, name: `Тариф «${plan.name}»`, price: priceNum, type: "plan" })
+                  }}
                   className={
-                    inCart
+                    subscription === plan.id
                       ? "w-full rounded-full bg-green-600 hover:bg-green-700 text-white font-semibold"
                       : isPopular
                       ? "w-full rounded-full bg-orange-500 text-[#0a0a0a] font-semibold hover:bg-orange-600"
                       : "w-full rounded-full bg-[#252525] text-white hover:bg-[#2f2f2f]"
                   }
                 >
-                  {inCart
-                    ? <><Check className="mr-2 h-4 w-4" /> В корзине</>
-                    : <><Plus className="mr-2 h-4 w-4" /> Выбрать план</>}
+                  {subscription === plan.id
+                    ? <><Check className="mr-2 h-4 w-4" /> Активна</>
+                    : <><Crown className="mr-2 h-4 w-4" /> Выбрать план</>}
                 </Button>
               </div>
             )
